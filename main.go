@@ -8,14 +8,23 @@ import (
 	"os"
 	"os/signal"
 	"time"
+
+	"github.com/go-chi/chi/v5"
 )
 
 func main() {
-	r := http.NewServeMux()
+	r := chi.NewRouter()
 
 	l := log.New(os.Stdout, "product-api-", log.LstdFlags)
-	r.Handle("/", handlers.NewProducts(l))
-
+	//create handlers
+	ph := handlers.NewProducts(l)
+	//Get product
+	productRouter := chi.NewRouter()
+	productRouter.Get("/products", ph.GetProducts)
+	//Update method
+	productRouter.Put("/products/{id:[0-9]+}", ph.UpdateProducts)
+	//Add method
+	productRouter.Post("/products", ph.AddProducts)
 	sv := &http.Server{
 		Addr:         ":9090",
 		Handler:      r,

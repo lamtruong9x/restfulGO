@@ -4,8 +4,9 @@ import (
 	"Resful/data"
 	"log"
 	"net/http"
-	"regexp"
 	"strconv"
+
+	"github.com/go-chi/chi/v5"
 )
 
 type Products struct {
@@ -14,43 +15,6 @@ type Products struct {
 
 func NewProducts(l *log.Logger) *Products {
 	return &Products{l}
-}
-
-func (p *Products) ServeHTTP(rw http.ResponseWriter, r *http.Request) {
-	if r.Method == http.MethodGet {
-		p.GetProducts(rw, r)
-		return
-	}
-	if r.Method == http.MethodPost {
-		p.AddProducts(rw, r)
-		return
-	}
-	if r.Method == http.MethodPut {
-		rexp := regexp.MustCompile(`/([0-9]+)`)
-		g := rexp.FindAllStringSubmatch(r.URL.Path, -1)
-		if len(g) != 1 {
-			p.l.Println("Invalid URI more than one id")
-			http.Error(rw, "Invalid URI", http.StatusBadRequest)
-			return
-		}
-
-		if len(g[0]) != 2 {
-			p.l.Println("Invalid URI more than one capture group")
-			http.Error(rw, "Invalid URI", http.StatusBadRequest)
-			return
-		}
-
-		idString := g[0][1]
-		id, err := strconv.Atoi(idString)
-		if err != nil {
-			p.l.Println("Invalid URI unable to convert to numer", idString)
-			http.Error(rw, "Invalid URI", http.StatusBadRequest)
-			return
-		}
-
-		p.UpdateProducts(id, rw, r)
-		return
-	}
 }
 
 func (p *Products) GetProducts(rw http.ResponseWriter, r *http.Request) {
@@ -70,9 +34,14 @@ func (p *Products) AddProducts(rw http.ResponseWriter, r *http.Request) {
 	data.AddProduct(newProduct)
 }
 
-func (p *Products) UpdateProducts(id int, rw http.ResponseWriter, r *http.Request) {
+func (p *Products) UpdateProducts(rw http.ResponseWriter, r *http.Request) {
+	id, err := strconv.Atoi(chi.URLParam(r, "id"))
+	p.l.Println("ID", id)
+	if err != nil {
+		http.Error(rw, "Invalid URI unable to convert to numer", http.StatusBadGateway)
+	}
 	newProduct := &data.Product{}
-	err := newProduct.FromJSON(r.Body)
+	err = newProduct.FromJSON(r.Body)
 	if err != nil {
 		http.Error(rw, "Unable to unmarshal", http.StatusInternalServerError)
 	}
