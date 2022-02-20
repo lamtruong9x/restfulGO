@@ -19,12 +19,19 @@ func main() {
 	//create handlers
 	ph := handlers.NewProducts(l)
 	//Get product
-	productRouter := chi.NewRouter()
-	productRouter.Get("/products", ph.GetProducts)
-	//Update method
-	productRouter.Put("/products/{id:[0-9]+}", ph.UpdateProducts)
-	//Add method
-	productRouter.Post("/products", ph.AddProducts)
+
+	r.Get("/products", ph.GetProducts)
+
+	r.Group(func(r chi.Router) {
+		r.Use(ph.MiddlewareValidateProduct)
+		//Update method
+		r.Put("/products/{id:[0-9]+}", ph.UpdateProducts)
+		//Add method
+		r.Post("/products", ph.AddProducts)
+	})
+	//Mount productRouter to main router
+	//r.Mount("/products", productRouter)
+
 	sv := &http.Server{
 		Addr:         ":9090",
 		Handler:      r,
